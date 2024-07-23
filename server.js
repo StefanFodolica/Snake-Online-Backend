@@ -51,6 +51,12 @@ app.get('/api/leaderboard/:difficulty', (req, res) => {
   res.json(leaderboards[difficulty]);
 });
 
+app.use((req, res, next) => {
+  console.log(`Received request for ${req.method} ${req.url}`);
+  next();
+});
+
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
