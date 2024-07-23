@@ -8,6 +8,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://stefandolllica.github.io');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 let leaderboards = {
   1: [], // Easy
   2: [], // Normal
@@ -31,10 +38,7 @@ app.get('/api/leaderboard/:difficulty', (req, res) => {
   res.json(leaderboards[difficulty]);
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
-});
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
