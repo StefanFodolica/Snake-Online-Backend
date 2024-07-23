@@ -3,9 +3,16 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
+const allowedOrigins = [
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'https://stefanfodolica.github.io'
+];
+
 app.use(cors({
-  origin: ['http://localhost:5500', 'http://127.0.0.1:5500', 'https://stefanfodolica.github.io']
+  origin: allowedOrigins
 }));
+
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -27,6 +34,9 @@ app.get('/', (req, res) => {
 
 app.post('/api/score', (req, res) => {
   const { name, score, difficulty } = req.body;
+  if (!leaderboards[difficulty]) {
+    return res.status(400).json({ success: false, message: 'Invalid difficulty level' });
+  }
   leaderboards[difficulty].push({ name, score });
   leaderboards[difficulty].sort((a, b) => b.score - a.score);
   leaderboards[difficulty] = leaderboards[difficulty].slice(0, 10);
@@ -35,12 +45,12 @@ app.post('/api/score', (req, res) => {
 
 app.get('/api/leaderboard/:difficulty', (req, res) => {
   const { difficulty } = req.params;
+  if (!leaderboards[difficulty]) {
+    return res.status(400).json({ success: false, message: 'Invalid difficulty level' });
+  }
   res.json(leaderboards[difficulty]);
 });
-
-
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
-
