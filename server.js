@@ -1,16 +1,16 @@
-
-
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const app = express();
 const port = process.env.PORT || 3000;
 
-console.log('MongoDB URI:', process.env.MONGODB_URI); // Log the MongoDB URI (make sure to redact this in production logs)
+console.log('Starting server...');
+console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
 
 mongoose.set('strictQuery', false);
 
 // MongoDB connection
+console.log('Attempting to connect to MongoDB...');
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/snake_game', { 
   useNewUrlParser: true, 
   useUnifiedTopology: true,
@@ -25,8 +25,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/snake_game', {
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-
-mongoose.set('socketTimeoutMS', 30000);
 
 // Schema definition
 const leaderboardSchema = new mongoose.Schema({
@@ -46,10 +44,11 @@ app.use(express.json());
 // Routes
 app.post('/api/score', async (req, res) => {
   try {
+    console.log('Received score:', req.body);
     const { name, score, difficulty } = req.body;
     const newEntry = new LeaderboardEntry({ name, score, difficulty });
     await newEntry.save();
-    
+    console.log('Score saved successfully');
     res.json({ success: true });
   } catch (error) {
     console.error('Error saving score:', error);
@@ -59,10 +58,12 @@ app.post('/api/score', async (req, res) => {
 
 app.get('/api/leaderboard/:difficulty', async (req, res) => {
   try {
+    console.log('Fetching leaderboard for difficulty:', req.params.difficulty);
     const { difficulty } = req.params;
     const leaderboard = await LeaderboardEntry.find({ difficulty: Number(difficulty) })
       .sort({ score: -1 })
       .limit(10);
+    console.log('Leaderboard fetched successfully');
     res.json(leaderboard);
   } catch (error) {
     console.error('Error retrieving leaderboard:', error);
@@ -76,4 +77,9 @@ app.listen(port, () => {
 }).on('error', (err) => {
   console.error('Error starting server:', err);
   process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Application specific logging, throwing an error, or other logic here
 });
