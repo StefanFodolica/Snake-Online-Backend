@@ -5,26 +5,27 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 console.log('Starting server...');
-console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
 
 mongoose.set('strictQuery', false);
 
-// MongoDB connection
-console.log('Attempting to connect to MongoDB...');
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/snake_game', { 
+const mongoUri = process.env.MONGODB_URI;
+console.log('Attempting to connect to MongoDB with URI:', mongoUri.replace(/:([^@]+)@/, ':****@'));
+
+mongoose.connect(mongoUri, { 
   useNewUrlParser: true, 
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 30000
+  serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 30s
 })
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => {
-  console.error('Could not connect to MongoDB:', err);
-  process.exit(1); // Exit the process if we can't connect to the database
+  console.error('Could not connect to MongoDB. Error details:', JSON.stringify(err, null, 2));
+  process.exit(1);
 });
 
 const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.on('error', (error) => {
+  console.error('MongoDB connection error:', JSON.stringify(error, null, 2));
+});
 
 // Schema definition
 const leaderboardSchema = new mongoose.Schema({
@@ -37,7 +38,7 @@ const LeaderboardEntry = mongoose.model('LeaderboardEntry', leaderboardSchema);
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5500', 'http://127.0.0.1:5500', 'https://yourgamedomain.com']
+  origin: ['http://localhost:5500', 'http://127.0.0.1:5500', 'https://fodo-snake-40bf65a523e4.herokuapp.com']
 }));
 app.use(express.json());
 
