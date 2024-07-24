@@ -6,17 +6,22 @@ const mongoose = require('mongoose');
 const app = express();
 const port = process.env.PORT || 3000;
 
+console.log('MongoDB URI:', process.env.MONGODB_URI); // Log the MongoDB URI (make sure to redact this in production logs)
+
 mongoose.set('strictQuery', false);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/snake_game', { 
   useNewUrlParser: true, 
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-  socketTimeoutMS: 30000 // Set the socketTimeoutMS option here
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 30000
 })
 .then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('Could not connect to MongoDB:', err));
+.catch(err => {
+  console.error('Could not connect to MongoDB:', err);
+  process.exit(1); // Exit the process if we can't connect to the database
+});
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
@@ -68,4 +73,7 @@ app.get('/api/leaderboard/:difficulty', async (req, res) => {
 // Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+}).on('error', (err) => {
+  console.error('Error starting server:', err);
+  process.exit(1);
 });
