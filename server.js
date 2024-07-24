@@ -8,10 +8,12 @@ const port = process.env.PORT || 3000;
 
 mongoose.set('strictQuery', false);
 
+// MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/snake_game', { 
   useNewUrlParser: true, 
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 30s
+  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+  socketTimeoutMS: 30000 // Set the socketTimeoutMS option here
 })
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => console.error('Could not connect to MongoDB:', err));
