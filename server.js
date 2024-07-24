@@ -7,7 +7,6 @@ const port = process.env.PORT || 3000;
 
 console.log('Starting server...');
 
-// DNS check
 dns.resolve('cluster0.s4lwdhe.mongodb.net', (err, addresses) => {
   if (err) {
     console.error('DNS resolution failed:', err);
@@ -24,17 +23,19 @@ console.log('Attempting to connect to MongoDB with URI:', mongoUri.replace(/:([^
 mongoose.connect(mongoUri, { 
   useNewUrlParser: true, 
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 30000, // Increase to 30 seconds
-  socketTimeoutMS: 45000, // Set socket timeout to 45 seconds
-  connectTimeoutMS: 30000, // Connection timeout of 30 seconds
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 30000,
   retryWrites: true,
   retryReads: true,
-})
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => {
-  console.error('Could not connect to MongoDB. Error details:', JSON.stringify(err, null, 2));
-  console.error('Stack trace:', err.stack);
-  process.exit(1);
+}, (err) => {
+  if (err) {
+    console.error('MongoDB connection error:', err);
+    console.error('Error details:', JSON.stringify(err, null, 2));
+    console.error('Stack trace:', err.stack);
+  } else {
+    console.log('Connected to MongoDB');
+  }
 });
 
 const db = mongoose.connection;
@@ -57,9 +58,17 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Test route
+// Test routes
 app.get('/test', (req, res) => {
   res.json({ message: 'Server is running' });
+});
+
+app.get('/db-status', (req, res) => {
+  if (mongoose.connection.readyState === 1) {
+    res.json({ status: 'connected' });
+  } else {
+    res.status(500).json({ status: 'disconnected' });
+  }
 });
 
 // Routes
@@ -95,14 +104,29 @@ app.get('/api/leaderboard/:difficulty', async (req, res) => {
 });
 
 // Start server
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 }).on('error', (err) => {
   console.error('Error starting server:', err);
+  console.error('Stack trace:', err.stack);
   process.exit(1);
+});
+
+server.on('close', () => {
+  console.log('Server is shutting down');
+  mongoose.connection.close(() => {
+    console.log('MongoDB connection closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Application specific logging, throwing an error, or other logic here
 });
