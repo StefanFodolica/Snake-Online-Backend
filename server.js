@@ -1,10 +1,20 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const dns = require('dns');
 const app = express();
 const port = process.env.PORT || 3000;
 
 console.log('Starting server...');
+
+// DNS check
+dns.resolve('cluster0.s4lwdhe.mongodb.net', (err, addresses) => {
+  if (err) {
+    console.error('DNS resolution failed:', err);
+  } else {
+    console.log('DNS resolution successful:', addresses);
+  }
+});
 
 mongoose.set('strictQuery', false);
 
@@ -14,11 +24,16 @@ console.log('Attempting to connect to MongoDB with URI:', mongoUri.replace(/:([^
 mongoose.connect(mongoUri, { 
   useNewUrlParser: true, 
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 30s
+  serverSelectionTimeoutMS: 30000, // Increase to 30 seconds
+  socketTimeoutMS: 45000, // Set socket timeout to 45 seconds
+  connectTimeoutMS: 30000, // Connection timeout of 30 seconds
+  retryWrites: true,
+  retryReads: true,
 })
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => {
   console.error('Could not connect to MongoDB. Error details:', JSON.stringify(err, null, 2));
+  console.error('Stack trace:', err.stack);
   process.exit(1);
 });
 
@@ -42,6 +57,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Test route
+app.get('/test', (req, res) => {
+  res.json({ message: 'Server is running' });
+});
+
 // Routes
 app.post('/api/score', async (req, res) => {
   try {
@@ -53,7 +73,8 @@ app.post('/api/score', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Error saving score:', error);
-    res.status(500).json({ success: false, message: 'Error saving score' });
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ success: false, message: 'Error saving score', error: error.message });
   }
 });
 
@@ -68,7 +89,8 @@ app.get('/api/leaderboard/:difficulty', async (req, res) => {
     res.json(leaderboard);
   } catch (error) {
     console.error('Error retrieving leaderboard:', error);
-    res.status(500).json({ success: false, message: 'Error retrieving leaderboard' });
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ success: false, message: 'Error retrieving leaderboard', error: error.message });
   }
 });
 
